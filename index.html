@@ -59,13 +59,16 @@
     <div class="dashboard" id="dashboard"></div>
 
     <script>
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxs7hll5nFRdbquX5ENaO0Xpbx4loCPm_FzjlOky0HACijX-qRRvn5Bk2H1ORGFrNLqvw/exec';
+        // 設定済みのGAS URL
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbwh_K_gcf_Pf6U5McZ6QQG5NP28S8J0aS5uXxeoCNlV5-hs9BshwkkAcRt2h-kIG9ObRw/exec';
+        
         const dashboard = document.getElementById('dashboard');
         const loading = document.getElementById('loading');
 
         // 楽曲の読み込みと描画
         async function loadSongs() {
             try {
+                // GETリクエストでデータを取得
                 const response = await fetch(GAS_URL);
                 const songs = await response.json();
                 loading.style.display = 'none';
@@ -101,11 +104,13 @@
                         const orderedCards = dashboard.querySelectorAll('.card');
                         const orderedIds = Array.from(orderedCards).map(c => c.dataset.id);
                         
+                        // ★修正点：mode: 'no-cors'を追加
                         fetch(GAS_URL, {
                             method: 'POST',
+                            mode: 'no-cors',
                             headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({ action: 'reorder', orderedIds: orderedIds })
-                        });
+                        }).catch(e => console.error(e));
                     }
                 });
 
@@ -117,33 +122,42 @@
 
         // 楽曲再生（クリック）時の処理
         function playSong(id, url) {
+            // 見た目上の数字を即座に+1する
             const countSpan = document.getElementById(`play-${id}`);
             countSpan.innerText = Number(countSpan.innerText) + 1;
 
+            // 裏側でGASに再生回数アップを送信
+            // ★修正点：mode: 'no-cors'を追加（keepaliveは一旦削除）
             fetch(GAS_URL, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'play', id: id }),
-                keepalive: true 
-            });
+                body: JSON.stringify({ action: 'play', id: id })
+            }).catch(e => console.error(e));
 
+            // HTMLファイルへ遷移
             window.location.href = url;
         }
 
         // いいねボタンの処理
         function likeSong(id) {
+            // 見た目上の数字を即座に+1する
             const likeSpan = document.getElementById(`like-${id}`);
             likeSpan.innerText = Number(likeSpan.innerText) + 1;
 
+            // ハートを少しアニメーションさせる
             const btn = likeSpan.parentElement;
             btn.style.transform = 'scale(1.2)';
             setTimeout(() => btn.style.transform = 'scale(1)', 200);
 
+            // 裏側でGASに送信
+            // ★修正点：mode: 'no-cors'を追加
             fetch(GAS_URL, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({ action: 'like', id: id })
-            });
+            }).catch(e => console.error(e));
         }
 
         // 楽曲追加処理
@@ -162,20 +176,27 @@
             };
 
             try {
+                // ★修正点：mode: 'no-cors'を追加
                 await fetch(GAS_URL, {
                     method: 'POST',
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(newSong)
                 });
-                location.reload();
+                
+                // no-corsの場合レスポンスが読めないため、スプレッドシートへの書き込み猶予として1.5秒待ってからリロード
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+                
             } catch (error) {
-                alert('エラーが発生しました');
+                alert('通信エラーが発生しました');
                 submitBtn.innerText = 'データベースに保存';
                 submitBtn.disabled = false;
             }
         });
 
-        // ページロード時に楽曲を読み込む
+        // ページ読み込み時に実行
         loadSongs();
     </script>
 </body>
