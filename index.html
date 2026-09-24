@@ -4,195 +4,444 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>音楽ライブラリ</title>
-    <!-- ドラッグ＆ドロップ用ライブラリ -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f7fa; padding: 20px; color: #333; }
-        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
-        
-        .admin-panel { background: white; padding: 20px; border-radius: 12px; margin-bottom: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto 40px; }
-        .admin-panel h3 { margin-top: 0; color: #34495e; font-size: 16px; }
-        .admin-panel input, .admin-panel textarea { width: 100%; margin-bottom: 12px; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; }
-        .admin-panel button { padding: 12px 20px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
-        
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 30px; max-width: 1000px; margin: 0 auto; }
-        
-        /* カード全体のデザイン */
-        .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; position: relative; }
-        
-        /* ドラッグ用のハンドル（つまみ） */
-        .drag-handle { cursor: grab; color: #bdc3c7; width: 100%; text-align: center; padding-bottom: 10px; font-size: 20px; line-height: 1; }
+        :root {
+            --bg: #111113;
+            --surface: #1b1b1f;
+            --surface-2: #24242a;
+            --line: #2e2e36;
+            --text: #ececf0;
+            --text-dim: #9a9aa6;
+            --accent: #d8b36a;
+            --accent-hover: #e8c784;
+            --heart: #e07a7a;
+            --font: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh;
+            font-family: var(--font); color: var(--text);
+            background: radial-gradient(ellipse at 50% -10%, #1f1d24 0%, var(--bg) 60%) fixed;
+        }
+
+        /* ===== ヘッダー ===== */
+        header {
+            max-width: 1080px; margin: 0 auto; padding: 44px 24px 24px;
+            display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px;
+            border-bottom: 1px solid var(--line);
+        }
+        h1 { font-size: clamp(26px, 4.5vw, 38px); font-weight: 700; letter-spacing: 0.08em; margin: 0; }
+        .meta { margin: 8px 0 0; color: var(--text-dim); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #5fbf7f; }
+        .sync-dot.busy { background: var(--accent); animation: pulse 1s infinite; }
+        .sync-dot.error { background: var(--heart); }
+        @keyframes pulse { 50% { opacity: 0.3; } }
+
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; }
+        .btn {
+            font-family: var(--font); font-size: 14px; font-weight: 500;
+            padding: 10px 18px; border-radius: 6px; cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 8px;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: #1a1408; border: 1px solid var(--accent); }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-primary:disabled { opacity: 0.6; cursor: wait; }
+        .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+        .btn:focus-visible, .icon-btn:focus-visible, .like-btn:focus-visible, .img-container:focus-visible {
+            outline: 2px solid var(--accent); outline-offset: 3px;
+        }
+
+        /* ===== ライブラリ ===== */
+        main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
+
+        .card {
+            background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+            padding: 12px 14px 10px; display: flex; flex-direction: column;
+            transition: border-color 0.2s;
+        }
+        .card:hover { border-color: #3c3c46; }
+        .card.sortable-ghost { opacity: 0.3; }
+
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .drag-handle { cursor: grab; color: var(--text-dim); font-size: 18px; line-height: 1; padding: 4px; user-select: none; }
         .drag-handle:active { cursor: grabbing; }
-        
-        .img-container { width: 100%; border-radius: 12px; margin-bottom: 15px; perspective: 1000px; cursor: pointer; }
-        .card img { width: 100%; display: block; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.25); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease; }
-        .img-container:hover img { transform: scale(1.08) translateY(-8px); box-shadow: 0 15px 25px rgba(0,0,0,0.4); }
-        
-        .title { font-weight: bold; margin-bottom: 6px; text-align: center; font-size: 1.1em; }
-        .description { font-size: 0.85em; color: #7f8c8d; text-align: center; line-height: 1.4; margin-bottom: 15px; flex-grow: 1; }
-        
-        /* 再生数といいねボタンのエリア */
-        .stats { display: flex; justify-content: space-between; align-items: center; width: 100%; border-top: 1px solid #f0f0f0; padding-top: 12px; }
-        .play-count { font-size: 14px; color: #7f8c8d; display: flex; align-items: center; gap: 5px; }
-        .like-btn { background: none; border: none; cursor: pointer; color: #e74c3c; font-size: 16px; display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 20px; transition: background 0.2s; }
-        .like-btn:hover { background: #ffeeee; }
-        
-        #loading { text-align: center; color: #7f8c8d; font-weight: bold; margin-top: 50px; }
+        .icon-btn {
+            background: none; border: 1px solid transparent; color: var(--text-dim);
+            font-family: var(--font); font-size: 12px; cursor: pointer; padding: 4px 10px; border-radius: 4px;
+        }
+        .icon-btn:hover { color: var(--accent); border-color: var(--line); }
+
+        .img-container { width: 100%; border-radius: 6px; margin-bottom: 12px; cursor: pointer; }
+        .card img {
+            width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block;
+            border-radius: 6px; background: var(--surface-2);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .img-container:hover img { transform: translateY(-4px); box-shadow: 0 16px 30px rgba(0, 0, 0, 0.7); }
+
+        .title { font-weight: 700; font-size: 1.05em; margin-bottom: 4px; }
+        .description { font-size: 0.85em; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px; flex-grow: 1; white-space: pre-wrap; }
+
+        .stats { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); padding-top: 8px; }
+        .play-count { font-size: 13px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+        .like-btn {
+            background: none; border: none; cursor: pointer; color: var(--heart);
+            font-family: var(--font); font-size: 14px; display: flex; align-items: center; gap: 6px;
+            padding: 5px 10px; border-radius: 20px; transition: background 0.2s, transform 0.2s;
+            font-variant-numeric: tabular-nums;
+        }
+        .like-btn:hover { background: rgba(224, 122, 122, 0.12); }
+
+        #status { text-align: center; color: var(--text-dim); margin-top: 40px; white-space: pre-line; line-height: 1.8; }
+
+        /* ===== モーダル ===== */
+        dialog {
+            width: min(520px, calc(100% - 32px)); padding: 0;
+            border: 1px solid var(--line); border-radius: 12px;
+            background: var(--surface); color: var(--text);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+        }
+        dialog::backdrop { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(3px); }
+        .dialog-inner { padding: 26px 26px 22px; }
+        dialog h2 { font-size: 20px; margin: 0 0 18px; }
+        dialog label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+        dialog input, dialog textarea {
+            width: 100%; margin-bottom: 14px; padding: 10px 12px;
+            background: var(--bg); color: var(--text);
+            border: 1px solid var(--line); border-radius: 6px;
+            font-family: var(--font); font-size: 15px;
+        }
+        dialog input:focus, dialog textarea:focus { outline: none; border-color: var(--accent); }
+        dialog textarea { resize: vertical; min-height: 80px; }
+        .preview { display: flex; gap: 12px; align-items: center; margin: -4px 0 14px; }
+        .preview img { width: 52px; height: 52px; object-fit: cover; border-radius: 4px; background: var(--bg); }
+        .preview span { font-size: 12px; color: var(--text-dim); }
+        .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+        #toast {
+            position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px);
+            background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
+            padding: 12px 20px; border-radius: 8px; font-size: 14px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s;
+        }
+        #toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition: none !important; animation: none !important; }
+        }
+        @media (max-width: 520px) {
+            .toolbar { width: 100%; }
+            .toolbar .btn { flex: 1; justify-content: center; }
+        }
     </style>
 </head>
 <body>
 
-    <h1>音楽ライブラリ ダッシュボード</h1>
+    <header>
+        <div>
+            <h1>音楽ライブラリ</h1>
+            <p class="meta"><span class="sync-dot" id="syncDot"></span><span id="syncText">読み込み中...</span></p>
+        </div>
+        <div class="toolbar">
+            <a class="btn btn-ghost" id="sheetLink" target="_blank" rel="noopener">スプレッドシートで編集</a>
+            <button class="btn btn-ghost" id="reloadBtn" type="button">再読み込み</button>
+            <button class="btn btn-primary" id="addBtn" type="button">＋ 曲を追加</button>
+        </div>
+    </header>
 
-    <div class="admin-panel">
-        <h3>新規楽曲の登録</h3>
-        <form id="addForm">
-            <input type="text" id="title" placeholder="タイトル (例: 半分のスピードで)" required>
-            <input type="text" id="html" placeholder="HTMLファイル名 (例: hanbuno.html)" required>
-            <input type="text" id="image" placeholder="画像ファイル名 (例: hanbuno.jpg)" required>
-            <textarea id="desc" placeholder="楽曲の説明" rows="2" required></textarea>
-            <button type="submit">データベースに保存</button>
+    <main>
+        <div id="status">楽曲を読み込み中...</div>
+        <div class="dashboard" id="dashboard"></div>
+    </main>
+
+    <!-- 追加・編集で共用するモーダル -->
+    <dialog id="songDialog">
+        <form id="songForm" class="dialog-inner">
+            <h2 id="dialogTitle">曲を追加</h2>
+
+            <label for="f-title">タイトル</label>
+            <input type="text" id="f-title" placeholder="半分のスピードで" required>
+
+            <label for="f-html">HTMLファイル名</label>
+            <input type="text" id="f-html" placeholder="hanbuno.html" required>
+
+            <label for="f-image">画像ファイル名</label>
+            <input type="text" id="f-image" placeholder="hanbuno.jpg" required>
+            <div class="preview"><img id="f-preview" alt=""><span>画像のプレビュー</span></div>
+
+            <label for="f-desc">説明</label>
+            <textarea id="f-desc" rows="3" required></textarea>
+
+            <div class="dialog-actions">
+                <button type="button" class="btn btn-ghost" id="cancelBtn">キャンセル</button>
+                <button type="submit" class="btn btn-primary" id="saveBtn">保存</button>
+            </div>
         </form>
-    </div>
+    </dialog>
 
-    <div id="loading">データベースから楽曲を読み込み中...</div>
-    <div class="dashboard" id="dashboard"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
 
     <script>
-        // 設定済みの最新GAS URL
+        // ===== 設定 =====
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxEVvx5vfY_ZY6SWkPj6znhH2MnRwGbB5K_tNWrlz3Uq5NSuAuTOGm9VOBAiYSmR2EBiw/exec';
-        
+        // ★ 楽曲データのスプレッドシートのURLに置き換えてください
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/XXXXXXXXXXXXXXXX/edit';
+        // スプレッドシートを直接編集した内容を拾うための自動同期間隔（ミリ秒）
+        const POLL_INTERVAL = 30000;
+
         const dashboard = document.getElementById('dashboard');
-        const loading = document.getElementById('loading');
+        const statusEl = document.getElementById('status');
+        const syncDot = document.getElementById('syncDot');
+        const syncText = document.getElementById('syncText');
+        const dialog = document.getElementById('songDialog');
+        const form = document.getElementById('songForm');
+        const fields = {
+            title: document.getElementById('f-title'),
+            html: document.getElementById('f-html'),
+            image: document.getElementById('f-image'),
+            description: document.getElementById('f-desc')
+        };
+        const preview = document.getElementById('f-preview');
 
-        // 楽曲の読み込みと描画
-        async function loadSongs() {
-            try {
-                // GETリクエストでデータを取得
-                const response = await fetch(GAS_URL);
-                const songs = await response.json();
-                loading.style.display = 'none';
-                
-                songs.forEach(song => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.dataset.id = song.id; // ドラッグ＆ドロップ時にIDを特定するため
-                    
-                    card.innerHTML = `
-                        <div class="drag-handle" title="ドラッグして並び替え">⠿</div>
-                        <div class="img-container" onclick="playSong('${song.id}', '${song.html}')" title="クリックして再生">
-                            <img src="${song.image}" alt="${song.title}">
-                        </div>
-                        <div class="title">${song.title}</div>
-                        <div class="description">${song.description}</div>
-                        <div class="stats">
-                            <div class="play-count">▶ <span id="play-${song.id}">${song.playCount}</span></div>
-                            <button class="like-btn" onclick="likeSong('${song.id}')">
-                                ❤️ <span id="like-${song.id}">${song.likes}</span>
-                            </button>
-                        </div>
-                    `;
-                    dashboard.appendChild(card);
-                });
+        let songs = [];
+        let editingId = null;     // null = 新規追加
+        let isDragging = false;
+        let loading = false;
 
-                // ドラッグ＆ドロップの有効化
-                new Sortable(dashboard, {
-                    handle: '.drag-handle', // ⠿ の部分を持った時だけ動かす
-                    animation: 150,
-                    onEnd: function () {
-                        // 並び替えが終わったら新しい順番をGASに送信
-                        const orderedCards = dashboard.querySelectorAll('.card');
-                        const orderedIds = Array.from(orderedCards).map(c => c.dataset.id);
-                        
-                        fetch(GAS_URL, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'text/plain' },
-                            body: JSON.stringify({ action: 'reorder', orderedIds: orderedIds })
-                        }).catch(e => console.error(e));
-                    }
-                });
+        document.getElementById('sheetLink').href = SHEET_URL;
 
-            } catch (error) {
-                loading.innerText = 'エラーが発生しました。';
-                console.error(error);
+        // ===== 共通 =====
+        // no-cors でも await すると GAS の処理完了まで待てる
+        function postToGas(payload) {
+            return fetch(GAS_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                keepalive: true,
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify(payload)
+            });
+        }
+
+        let toastTimer;
+        function toast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+        }
+
+        function setSync(state, text) {
+            syncDot.className = 'sync-dot' + (state ? ' ' + state : '');
+            syncText.textContent = text;
+        }
+
+        // 変更後は必ずこれを呼ぶ（= F5 と同じくスプレッドシートから読み直す）
+        let syncTimer;
+        function syncSoon(delay = 300) {
+            clearTimeout(syncTimer);
+            syncTimer = setTimeout(loadSongs, delay);
+        }
+
+        // ===== カード =====
+        function el(tag, className, text) {
+            const e = document.createElement(tag);
+            if (className) e.className = className;
+            if (text !== undefined) e.textContent = text;
+            return e;
+        }
+
+        function createCard(song) {
+            const card = el('article', 'card');
+            card.dataset.id = song.id;
+
+            const top = el('div', 'card-top');
+            const handle = el('span', 'drag-handle', '⠿');
+            handle.title = 'ドラッグして並び替え';
+            const editBtn = el('button', 'icon-btn', '編集');
+            editBtn.type = 'button';
+            editBtn.addEventListener('click', () => openDialog(song.id));
+            top.append(handle, editBtn);
+
+            const imgBox = el('div', 'img-container');
+            imgBox.tabIndex = 0;
+            imgBox.title = 'クリックして再生';
+            imgBox.addEventListener('click', () => playSong(song.id));
+            imgBox.addEventListener('keydown', e => { if (e.key === 'Enter') playSong(song.id); });
+            const img = el('img');
+            img.src = song.image;
+            img.alt = song.title;
+            img.loading = 'lazy';
+            imgBox.appendChild(img);
+
+            const stats = el('div', 'stats');
+            const play = el('div', 'play-count', '▶ ');
+            const playSpan = el('span', null, song.playCount ?? 0);
+            playSpan.id = `play-${song.id}`;
+            play.appendChild(playSpan);
+
+            const likeBtn = el('button', 'like-btn', '♥ ');
+            likeBtn.type = 'button';
+            const likeSpan = el('span', null, song.likes ?? 0);
+            likeSpan.id = `like-${song.id}`;
+            likeBtn.appendChild(likeSpan);
+            likeBtn.addEventListener('click', () => likeSong(song.id));
+            stats.append(play, likeBtn);
+
+            card.append(top, imgBox, el('div', 'title', song.title), el('div', 'description', song.description), stats);
+            return card;
+        }
+
+        function render() {
+            dashboard.replaceChildren(...songs.map(createCard));
+            if (songs.length) {
+                statusEl.style.display = 'none';
+            } else {
+                statusEl.style.display = 'block';
+                statusEl.textContent = 'まだ曲がありません。「＋ 曲を追加」から登録してください。';
             }
         }
 
-        // 楽曲再生（クリック）時の処理
-        function playSong(id, url) {
-            // 見た目上の数字を即座に+1する
-            const countSpan = document.getElementById(`play-${id}`);
-            countSpan.innerText = Number(countSpan.innerText) + 1;
-
-            // 裏側でGASに再生回数アップを送信
-            fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'play', id: id })
-            }).catch(e => console.error(e));
-
-            // HTMLファイルへ遷移
-            window.location.href = url;
-        }
-
-        // いいねボタンの処理
-        function likeSong(id) {
-            // 見た目上の数字を即座に+1する
-            const likeSpan = document.getElementById(`like-${id}`);
-            likeSpan.innerText = Number(likeSpan.innerText) + 1;
-
-            // ハートを少しアニメーションさせる
-            const btn = likeSpan.parentElement;
-            btn.style.transform = 'scale(1.2)';
-            setTimeout(() => btn.style.transform = 'scale(1)', 200);
-
-            // 裏側でGASに送信
-            fetch(GAS_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'like', id: id })
-            }).catch(e => console.error(e));
-        }
-
-        // 楽曲追加処理
-        document.getElementById('addForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = e.target.querySelector('button');
-            submitBtn.innerText = '保存中...';
-            submitBtn.disabled = true;
-
-            const newSong = {
-                action: 'add',
-                title: document.getElementById('title').value,
-                html: document.getElementById('html').value,
-                image: document.getElementById('image').value,
-                description: document.getElementById('desc').value
-            };
-
+        // ===== スプレッドシートから読み込み =====
+        async function loadSongs() {
+            // モーダル編集中・ドラッグ中は画面を書き換えない（あとで同期）
+            if (loading || isDragging || dialog.open) return;
+            loading = true;
+            setSync('busy', '同期中...');
             try {
-                await fetch(GAS_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(newSong)
-                });
-                
-                // no-corsの場合レスポンスが読めないため、スプレッドシートへの書き込み猶予として1.5秒待ってからリロード
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-                
-            } catch (error) {
-                alert('通信エラーが発生しました');
-                submitBtn.innerText = 'データベースに保存';
-                submitBtn.disabled = false;
+                const res = await fetch(`${GAS_URL}?t=${Date.now()}`, { cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const text = await res.text();
+                let data;
+                try { data = JSON.parse(text); }
+                catch { console.error('GASの応答:', text); throw new Error('JSONではない応答'); }
+                if (!Array.isArray(data)) throw new Error('配列ではない応答');
+
+                // 内容が変わったときだけ描き直す（ちらつき防止）
+                if (JSON.stringify(data) !== JSON.stringify(songs) || !dashboard.children.length) {
+                    songs = data;
+                    render();
+                }
+                const now = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                setSync('', `${songs.length} 曲・${now} に同期`);
+            } catch (err) {
+                console.error(err);
+                setSync('error', '同期できませんでした');
+                if (!songs.length) {
+                    statusEl.style.display = 'block';
+                    statusEl.textContent = 'データを読み込めませんでした。\nGASのURLとデプロイ設定（アクセス: 全員）を確認してください。';
+                }
+            } finally {
+                loading = false;
+            }
+        }
+
+        // ===== 並び替え =====
+        new Sortable(dashboard, {
+            handle: '.drag-handle',
+            animation: 150,
+            onStart() { isDragging = true; },
+            async onEnd() {
+                isDragging = false;
+                const orderedIds = Array.from(dashboard.children).map(c => c.dataset.id);
+                setSync('busy', '並び順を保存中...');
+                try { await postToGas({ action: 'reorder', orderedIds }); }
+                catch (e) { console.error(e); toast('並び順を保存できませんでした'); }
+                syncSoon();
             }
         });
 
-        // ページ読み込み時に実行
+        // ===== 再生・いいね =====
+        function playSong(id) {
+            const song = songs.find(s => String(s.id) === String(id));
+            if (!song) return;
+            const span = document.getElementById(`play-${id}`);
+            span.textContent = Number(span.textContent) + 1;
+            postToGas({ action: 'play', id }).catch(console.error);
+            setTimeout(() => { window.location.href = song.html; }, 150);
+        }
+
+        async function likeSong(id) {
+            const span = document.getElementById(`like-${id}`);
+            span.textContent = Number(span.textContent) + 1;
+            const btn = span.parentElement;
+            btn.style.transform = 'scale(1.2)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 200);
+            try { await postToGas({ action: 'like', id }); }
+            catch (e) { console.error(e); }
+            syncSoon(600);  // 連打してもまとめて1回だけ同期
+        }
+
+        // ===== 追加・編集モーダル =====
+        function openDialog(id = null) {
+            editingId = id;
+            const song = id !== null ? songs.find(s => String(s.id) === String(id)) : null;
+            document.getElementById('dialogTitle').textContent = song ? '曲を編集' : '曲を追加';
+            for (const key in fields) fields[key].value = song ? (song[key] ?? '') : '';
+            updatePreview();
+            dialog.showModal();
+            fields.title.focus();
+        }
+
+        function updatePreview() {
+            const src = fields.image.value.trim();
+            if (src) { preview.src = src; preview.style.visibility = 'visible'; }
+            else { preview.removeAttribute('src'); preview.style.visibility = 'hidden'; }
+        }
+        fields.image.addEventListener('input', updatePreview);
+        preview.addEventListener('error', () => { preview.style.visibility = 'hidden'; });
+
+        document.getElementById('addBtn').addEventListener('click', () => openDialog());
+        document.getElementById('cancelBtn').addEventListener('click', () => dialog.close());
+        document.getElementById('reloadBtn').addEventListener('click', () => loadSongs());
+        dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+        // モーダルを閉じたら最新状態に同期
+        dialog.addEventListener('close', () => syncSoon(0));
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const saveBtn = document.getElementById('saveBtn');
+            const values = {};
+            for (const key in fields) values[key] = fields[key].value.trim();
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = '保存中...';
+            try {
+                if (editingId !== null) {
+                    await postToGas({ action: 'update', id: editingId, ...values });
+                    toast('変更を保存しました');
+                } else {
+                    await postToGas({ action: 'add', ...values });
+                    toast('曲を追加しました');
+                }
+                dialog.close();   // close イベントで自動的に再読み込み
+            } catch (err) {
+                console.error(err);
+                toast('保存できませんでした。通信状況を確認してください');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '保存';
+            }
+        });
+
+        // ===== スプレッドシート直接編集の反映 =====
+        // タブに戻ってきたとき（スプレッドシートを編集して戻った時など）に同期
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') loadSongs();
+        });
+        // 開きっぱなしでも定期的に同期
+        setInterval(() => {
+            if (document.visibilityState === 'visible') loadSongs();
+        }, POLL_INTERVAL);
+
         loadSongs();
     </script>
 </body>
