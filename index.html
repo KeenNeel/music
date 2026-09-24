@@ -59,9 +59,8 @@
     <div class="dashboard" id="dashboard"></div>
 
     <script>
-        // 設定済みのGAS URL
-        const GAS_URL = '// 修正後（前後のシングルクォーテーション ' ' は残してください）
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxs7hIl5nFRdbquX5ENaO0Xpbx4IoCPm_FzjlOky0HACijX-qRRvn5Bk2H1ORGFrNLqvw/exec';';
+        // 設定済みの最新GAS URL
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxs7hIl5nFRdbquX5ENaO0Xpbx4IoCPm_FzjlOky0HACijX-qRRvn5Bk2H1ORGFrNLqvw/exec';
         
         const dashboard = document.getElementById('dashboard');
         const loading = document.getElementById('loading');
@@ -105,7 +104,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxs7hIl5nFRdbquX5ENaO0X
                         const orderedCards = dashboard.querySelectorAll('.card');
                         const orderedIds = Array.from(orderedCards).map(c => c.dataset.id);
                         
-                        // ★修正点：mode: 'no-cors'を追加
                         fetch(GAS_URL, {
                             method: 'POST',
                             mode: 'no-cors',
@@ -128,7 +126,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxs7hIl5nFRdbquX5ENaO0X
             countSpan.innerText = Number(countSpan.innerText) + 1;
 
             // 裏側でGASに再生回数アップを送信
-            // ★修正点：mode: 'no-cors'を追加（keepaliveは一旦削除）
             fetch(GAS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -152,7 +149,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxs7hIl5nFRdbquX5ENaO0X
             setTimeout(() => btn.style.transform = 'scale(1)', 200);
 
             // 裏側でGASに送信
-            // ★修正点：mode: 'no-cors'を追加
             fetch(GAS_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -177,7 +173,6 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxs7hIl5nFRdbquX5ENaO0X
             };
 
             try {
-                // ★修正点：mode: 'no-cors'を追加
                 await fetch(GAS_URL, {
                     method: 'POST',
                     mode: 'no-cors',
