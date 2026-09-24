@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音楽ライブラリ</title>
+    <!-- ドラッグ＆ドロップ用ライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f7fa; padding: 20px; color: #333; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        
+        .admin-panel { background: white; padding: 20px; border-radius: 12px; margin-bottom: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto 40px; }
+        .admin-panel h3 { margin-top: 0; color: #34495e; font-size: 16px; }
+        .admin-panel input, .admin-panel textarea { width: 100%; margin-bottom: 12px; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; }
+        .admin-panel button { padding: 12px 20px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
+        
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 30px; max-width: 1000px; margin: 0 auto; }
+        
+        /* カード全体のデザイン */
+        .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; position: relative; }
+        
+        /* ドラッグ用のハンドル（つまみ） */
+        .drag-handle { cursor: grab; color: #bdc3c7; width: 100%; text-align: center; padding-bottom: 10px; font-size: 20px; line-height: 1; }
+        .drag-handle:active { cursor: grabbing; }
+        
+        .img-container { width: 100%; border-radius: 12px; margin-bottom: 15px; perspective: 1000px; cursor: pointer; }
+        .card img { width: 100%; display: block; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.25); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease; }
+        .img-container:hover img { transform: scale(1.08) translateY(-8px); box-shadow: 0 15px 25px rgba(0,0,0,0.4); }
+        
+        .title { font-weight: bold; margin-bottom: 6px; text-align: center; font-size: 1.1em; }
+        .description { font-size: 0.85em; color: #7f8c8d; text-align: center; line-height: 1.4; margin-bottom: 15px; flex-grow: 1; }
+        
+        /* 再生数といいねボタンのエリア */
+        .stats { display: flex; justify-content: space-between; align-items: center; width: 100%; border-top: 1px solid #f0f0f0; padding-top: 12px; }
+        .play-count { font-size: 14px; color: #7f8c8d; display: flex; align-items: center; gap: 5px; }
+        .like-btn { background: none; border: none; cursor: pointer; color: #e74c3c; font-size: 16px; display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 20px; transition: background 0.2s; }
+        .like-btn:hover { background: #ffeeee; }
+        
+        #loading { text-align: center; color: #7f8c8d; font-weight: bold; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+    <h1>音楽ライブラリ ダッシュボード</h1>
+
+    <div class="admin-panel">
+        <h3>新規楽曲の登録</h3>
+        <form id="addForm">
+            <input type="text" id="title" placeholder="タイトル (例: 半分のスピードで)" required>
+            <input type="text" id="html" placeholder="HTMLファイル名 (例: hanbuno.html)" required>
+            <input type="text" id="image" placeholder="画像ファイル名 (例: hanbuno.jpg)" required>
+            <textarea id="desc" placeholder="楽曲の説明" rows="2" required></textarea>
+            <button type="submit">データベースに保存</button>
+        </form>
+    </div>
+
+    <div id="loading">データベースから楽曲を読み込み中...</div>
+    <div class="dashboard" id="dashboard"></div>
+
+    <script>
+        const GAS_URL = 'YOUR_GAS_WEB_APP_URL';
+        const dashboard = document.getElementById('dashboard');
+        const loading = document.getElementById('loading');
+
+        // 楽曲の読み込みと描画
+        async function loadSongs() {
+            try {
+                const response = await fetch(GAS_URL);
+                const songs = await response.json();
+                loading.style.display = 'none';
+                
+                songs.forEach(song => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.id = song.id; // ドラッグ＆ドロップ時にIDを特定するため
+                    
+                    card.innerHTML = `
+                        <div class="drag-handle" title="ドラッグして並び替え">⠿</div>
+                        <div class="img-container" onclick="playSong('${song.id}', '${song.html}')" title="クリックして再生">
+                            <img src="${song.image}" alt="${song.title}">
+                        </div>
+                        <div class="title">${song.title}</div>
+                        <div class="description">${song.description}</div>
+                        <div class="stats">
+                            <div class="play-count">▶ <span id="play-${song.id}">${song.playCount}</span></div>
+                            <button class="like-btn" onclick="likeSong('${song.id}')">
+                                ❤️ <span id="like-${song.id}">${song.likes}</span>
+                            </button>
+                        </div>
+                    `;
+                    dashboard.appendChild(card);
+                });
+
+                // ドラッグ＆ドロップの有効化
+                new Sortable(dashboard, {
+                    handle: '.drag-handle', // ⠿ の部分を持った時だけ動かす
+                    animation: 150,
+                    onEnd: function () {
+                        // 並び替えが終わったら新しい順番をGASに送信
+                        const orderedCards = dashboard.querySelectorAll('.card');
+                        const orderedIds = Array.from(orderedCards).map(c => c.dataset.id);
+                        
+                        fetch(GAS_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({ action: 'reorder', orderedIds: orderedIds })
+                        });
+                    }
+                });
+
+            } catch (error) {
+                loading.innerText = 'エラーが発生しました。';
+                console.error(error);
+            }
+        }
+
+        // 楽曲再生（クリック）時の処理
+        function playSong(id, url) {
+            // 見た目上の数字を即座に+1する
+            const countSpan = document.getElementById(`play-${id}`);
+            countSpan.innerText = Number(countSpan.innerText) + 1;
+
+            // 裏側でGASに再生回数アップを送信（keepaliveでページ遷移後も通信を継続）
+            fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'play', id: id }),
+                keepalive: true 
+            });
+
+            // HTMLファイルへ遷移
+            window.location.href = url;
+        }
+
+        // いいねボタンの処理
+        function likeSong(id) {
+            // 見た目上の数字を即座に+1する
+            const likeSpan = document.getElementById(`like-${id}`);
+            likeSpan.innerText = Number(likeSpan.innerText) + 1;
+
+            // ハートを少しアニメーションさせる
+            const btn = likeSpan.parentElement;
+            btn.style.transform = 'scale(1.2)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 200);
+
+            // 裏側でGASに送信
+            fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'like', id: id })
+            });
+        }
+
+        // 楽曲追加処理
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button');
+            submitBtn.innerText = '保存中...';
+            submitBtn.disabled = true;
+
+            const newSong = {
+                action: 'add',
+                title: document.getElementById('title').value,
+                html: document.getElementById('html').value,
+                image: document.getElementById('image').value,
+                description: document.getElementById('desc').value
+            };
+
+            try {
+                await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(newSong)
+                });
+                location.reload();
+            } catch (error) {
+                alert('エラーが発生しました');
+                submitBtn.innerText = 'データベースに保存';
+                submitBtn.disabled = false;
+            }
+        });
+
+        if (GAS_URL !== 'https://script.google.com/macros/s/AKfycbwh_K_gcf_Pf6U5McZ6QQG5NP28S8J0aS5uXxeoCNlV5-hs9BshwkkAcRt2h-kIG9ObRw/exec') {
+            loadSongs();
+        } else {
+            loading.innerText = 'GASのURLが設定されていません。';
+        }
+    </script>
+</body>
+</html>
