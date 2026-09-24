@@ -117,11 +117,9 @@
 
         // 楽曲再生（クリック）時の処理
         function playSong(id, url) {
-            // 見た目上の数字を即座に+1する
             const countSpan = document.getElementById(`play-${id}`);
             countSpan.innerText = Number(countSpan.innerText) + 1;
 
-            // 裏側でGASに再生回数アップを送信（keepaliveでページ遷移後も通信を継続）
             fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
@@ -129,22 +127,18 @@
                 keepalive: true 
             });
 
-            // HTMLファイルへ遷移
             window.location.href = url;
         }
 
         // いいねボタンの処理
         function likeSong(id) {
-            // 見た目上の数字を即座に+1する
             const likeSpan = document.getElementById(`like-${id}`);
             likeSpan.innerText = Number(likeSpan.innerText) + 1;
 
-            // ハートを少しアニメーションさせる
             const btn = likeSpan.parentElement;
             btn.style.transform = 'scale(1.2)';
             setTimeout(() => btn.style.transform = 'scale(1)', 200);
 
-            // 裏側でGASに送信
             fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
@@ -181,11 +175,8 @@
             }
         });
 
-        if (GAS_URL !== 'https://script.google.com/macros/s/AKfycbwh_K_gcf_Pf6U5McZ6QQG5NP28S8J0aS5uXxeoCNlV5-hs9BshwkkAcRt2h-kIG9ObRw/exec') {
-            loadSongs();
-        } else {
-            loading.innerText = 'GASのURLが設定されていません。';
-        }
+        // ページロード時に楽曲を読み込む
+        loadSongs();
     </script>
 </body>
 </html>
