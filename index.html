@@ -97,6 +97,33 @@
         }
         .img-container:hover img { transform: translateY(-4px); box-shadow: 0 16px 30px rgba(0, 0, 0, 0.7); }
 
+        /* 画像に重ねる再生マーク */
+        .img-container { position: relative; }
+        .img-overlay {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; background: rgba(0, 0, 0, 0.35);
+            opacity: 0; transition: opacity 0.25s, transform 0.3s ease; pointer-events: none;
+        }
+        .img-overlay span {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: rgba(216, 179, 106, 0.95); color: #1a1408;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; padding-left: 4px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+        .img-container:hover .img-overlay { opacity: 1; transform: translateY(-4px); }
+
+        /* PLAYボタン */
+        .play-btn {
+            width: 100%; margin-bottom: 12px; padding: 10px 0;
+            background: transparent; color: var(--accent);
+            border: 1px solid var(--accent); border-radius: 6px;
+            font-family: var(--font); font-size: 14px; font-weight: 700; letter-spacing: 0.2em;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .play-btn:hover { background: var(--accent); color: #1a1408; }
+        .play-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
         .title { font-weight: 700; font-size: 1.05em; margin-bottom: 4px; }
         .description { font-size: 0.85em; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px; flex-grow: 1; white-space: pre-wrap; }
 
@@ -146,8 +173,41 @@
         .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
         .form-error { color: var(--heart); font-size: 13px; margin: -6px 0 12px; min-height: 1em; }
 
+        /* ===== プレイヤー（曲ページをフレーム表示） ===== */
+        body.player-open { overflow: hidden; }
+        .player {
+            position: fixed; inset: 0; z-index: 50;
+            display: none; flex-direction: column;
+            background: var(--bg);
+        }
+        .player.open { display: flex; }
+        .player-bar {
+            display: flex; align-items: center; gap: 14px;
+            padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top, 0px));
+            background: var(--surface); border-bottom: 1px solid var(--line);
+        }
+        .back-btn { flex-shrink: 0; }
+        .player-title {
+            font-weight: 700; font-size: 15px; letter-spacing: 0.04em;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+        }
+        .player-hint {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            padding: 12px 16px;
+            background: var(--accent); color: #1a1408;
+            font-size: 15px; font-weight: 700; text-align: center;
+        }
+        .player-hint[hidden] { display: none; }
+        .player-hint .arrow { display: inline-block; animation: bounce 1.2s ease-in-out infinite; }
+        @keyframes bounce { 50% { transform: translateY(4px); } }
+        .hint-close {
+            background: none; border: 1px solid rgba(26, 20, 8, 0.35); color: #1a1408;
+            border-radius: 4px; padding: 2px 10px; font-family: var(--font); font-size: 13px; cursor: pointer;
+        }
+        .player iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+
         #toast {
-            position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px);
+            position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); z-index: 60;
             background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
             padding: 12px 20px; border-radius: 8px; font-size: 14px;
             opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s;
@@ -185,6 +245,19 @@
     <footer>
         <button class="link-btn" id="adminToggle" type="button">管理者ログイン</button>
     </footer>
+
+    <!-- プレイヤー：曲ページをフレーム内に表示 -->
+    <div class="player" id="player" aria-hidden="true">
+        <div class="player-bar">
+            <button class="btn btn-primary back-btn" id="backBtn" type="button">← 一覧に戻る</button>
+            <div class="player-title" id="playerTitle"></div>
+        </div>
+        <div class="player-hint" id="playerHint">
+            <span><span class="arrow">↓</span>&nbsp;ページ内の <b>▶ 再生ボタン</b> を押すと演奏が始まります</span>
+            <button class="hint-close" id="hintClose" type="button">閉じる</button>
+        </div>
+        <iframe id="playerFrame" title="楽曲ページ" allow="autoplay; fullscreen"></iframe>
+    </div>
 
     <!-- 追加・編集モーダル（管理者のみ） -->
     <dialog id="songDialog">
@@ -255,7 +328,6 @@
         let songs = [];
         let editingId = null;
         let isDragging = false;
-        let loading = false;
         let adminKey = null;
 
         document.getElementById('sheetLink').href = SHEET_URL;
@@ -283,13 +355,12 @@
         function setSync(state, text) {
             syncDot.className = 'sync-dot' + (state ? ' ' + state : '');
             syncText.textContent = text;
-            reloadBtn.classList.toggle('spinning', state === 'busy');
         }
 
         let syncTimer;
         function syncSoon(delay = 300) {
             clearTimeout(syncTimer);
-            syncTimer = setTimeout(loadSongs, delay);
+            syncTimer = setTimeout(() => loadSongs(), delay);
         }
 
         // ===== 管理者 =====
@@ -379,7 +450,13 @@
             img.src = song.image;
             img.alt = song.title;
             img.loading = 'lazy';
-            imgBox.appendChild(img);
+            const overlay = el('div', 'img-overlay');
+            overlay.appendChild(el('span', null, '▶'));
+            imgBox.append(img, overlay);
+
+            const playBtn = el('button', 'play-btn', '▶ PLAY');
+            playBtn.type = 'button';
+            playBtn.addEventListener('click', () => playSong(song.id));
 
             const stats = el('div', 'stats');
             const play = el('div', 'play-count', '▶ ');
@@ -395,7 +472,7 @@
             likeBtn.addEventListener('click', () => likeSong(song.id));
             stats.append(play, likeBtn);
 
-            card.append(top, imgBox, el('div', 'title', song.title), el('div', 'description', song.description), stats);
+            card.append(top, imgBox, el('div', 'title', song.title), el('div', 'description', song.description), playBtn, stats);
             return card;
         }
 
@@ -410,12 +487,28 @@
         }
 
         // ===== スプレッドシートから読み込み =====
-        async function loadSongs() {
-            if (loading || isDragging || dialog.open || loginDialog.open) return;
-            loading = true;
-            setSync('busy', '同期中...');
+        let currentLoad = null;
+
+        // manual = true のとき（再読み込みボタン）だけ矢印を回す
+        async function loadSongs({ manual = false } = {}) {
+            if (isDragging || dialog.open || loginDialog.open) return;
+            if (manual) { reloadBtn.classList.add('spinning'); reloadBtn.disabled = true; }
             try {
-                const res = await fetch(`${GAS_URL}?t=${Date.now()}`, { cache: 'no-store' });
+                // 自動同期の途中で押された場合は、その完了を待つ
+                if (!currentLoad) currentLoad = fetchSongs().finally(() => { currentLoad = null; });
+                await currentLoad;
+            } finally {
+                if (manual) { reloadBtn.classList.remove('spinning'); reloadBtn.disabled = false; }
+            }
+        }
+
+        async function fetchSongs() {
+            setSync('busy', '同期中...');
+            // 応答がない場合も20秒で打ち切る（回りっぱなし・同期中のままを防ぐ）
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 20000);
+            try {
+                const res = await fetch(`${GAS_URL}?t=${Date.now()}`, { cache: 'no-store', signal: controller.signal });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const text = await res.text();
                 let data;
@@ -437,7 +530,7 @@
                     statusEl.textContent = 'データを読み込めませんでした。\n少し時間をおいて再読み込みしてください。';
                 }
             } finally {
-                loading = false;
+                clearTimeout(timer);
             }
         }
 
@@ -458,14 +551,74 @@
         });
 
         // ===== 再生・いいね（誰でも可） =====
+        const player = document.getElementById('player');
+        const playerFrame = document.getElementById('playerFrame');
+        const playerHint = document.getElementById('playerHint');
+
         function playSong(id) {
             const song = songs.find(s => String(s.id) === String(id));
             if (!song) return;
             const span = document.getElementById(`play-${id}`);
             span.textContent = Number(span.textContent) + 1;
             postToGas({ action: 'play', id }).catch(console.error);
-            setTimeout(() => { window.location.href = song.html; }, 150);
+
+            openPlayer(song);
+            // ブラウザの「戻る」でも一覧に戻れるように履歴を1つ積む
+            history.pushState({ player: song.id }, '', `#play-${song.id}`);
         }
+
+        function openPlayer(song) {
+            document.getElementById('playerTitle').textContent = song.title;
+            playerHint.hidden = false;
+            playerFrame.src = song.html;
+            player.classList.add('open');
+            player.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('player-open');
+            document.getElementById('backBtn').focus();
+        }
+
+        function closePlayer() {
+            if (!player.classList.contains('open')) return;
+            player.classList.remove('open');
+            player.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('player-open');
+            playerFrame.src = 'about:blank';   // 音を止める
+            syncSoon(0);                        // 戻ったら最新状態に
+        }
+
+        // 「一覧に戻る」ボタン：履歴を戻す（popstate で閉じる）
+        document.getElementById('backBtn').addEventListener('click', () => {
+            if (history.state && history.state.player) history.back();
+            else { closePlayer(); history.replaceState(null, '', location.pathname + location.search); }
+        });
+        // ブラウザの戻るボタン・スマホの戻るジェスチャー
+        window.addEventListener('popstate', () => closePlayer());
+        // Escキーでも戻る
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && player.classList.contains('open')) document.getElementById('backBtn').click();
+        });
+
+        document.getElementById('hintClose').addEventListener('click', () => { playerHint.hidden = true; });
+
+        // 曲ページ読み込み後：再生が始まったら案内を自動で消す
+        playerFrame.addEventListener('load', () => {
+            if (!player.classList.contains('open')) return;
+            try {
+                const doc = playerFrame.contentDocument;
+                if (!doc) return;
+                // 曲ページ内の「戻る」リンク等で一覧ページ自体が開かれたら、プレイヤーを閉じる
+                const inner = playerFrame.contentWindow.location;
+                const norm = path => path.replace(/index\.html?$/, '');
+                if (inner.href !== 'about:blank' && norm(inner.pathname) === norm(location.pathname)) {
+                    document.getElementById('backBtn').click();
+                    return;
+                }
+                // audio / video の再生開始を検知（play イベントはバブルしないのでキャプチャで拾う）
+                doc.addEventListener('play', () => { playerHint.hidden = true; }, true);
+            } catch (e) {
+                // 別ドメインのページの場合は検知できないので、案内は「閉じる」まで表示したまま
+            }
+        });
 
         async function likeSong(id) {
             const span = document.getElementById(`like-${id}`);
@@ -500,7 +653,7 @@
 
         document.getElementById('addBtn').addEventListener('click', () => openDialog());
         document.getElementById('cancelBtn').addEventListener('click', () => dialog.close());
-        reloadBtn.addEventListener('click', () => loadSongs());
+        reloadBtn.addEventListener('click', () => loadSongs({ manual: true }));
         dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
         dialog.addEventListener('close', () => syncSoon(0));
 
@@ -535,11 +688,13 @@
             if (document.visibilityState === 'visible') loadSongs();
         });
         setInterval(() => {
-            if (document.visibilityState === 'visible') loadSongs();
+            if (document.visibilityState === 'visible' && !document.body.classList.contains('player-open')) loadSongs();
         }, POLL_INTERVAL);
 
         // ===== 起動 =====
         (async () => {
+            // プレイヤー表示中にリロードされた場合は一覧から始める
+            if (location.hash.startsWith('#play-')) history.replaceState(null, '', location.pathname + location.search);
             loadSongs();
             // 保存済みのキーがあれば、まだ有効か確認してから管理者モードにする
             const saved = safeGet(KEY_STORAGE);
