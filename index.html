@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音楽ライブラリ</title>
+    <title>MUSIC LIBRARY</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
@@ -28,13 +28,16 @@
             background: radial-gradient(ellipse at 50% -10%, #1f1d24 0%, var(--bg) 60%) fixed;
         }
 
+        /* 管理者だけに見せる要素 */
+        body:not(.is-admin) .admin-only { display: none !important; }
+
         /* ===== ヘッダー ===== */
         header {
             max-width: 1080px; margin: 0 auto; padding: 44px 24px 24px;
             display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px;
             border-bottom: 1px solid var(--line);
         }
-        h1 { font-size: clamp(26px, 4.5vw, 38px); font-weight: 700; letter-spacing: 0.08em; margin: 0; }
+        h1 { font-size: clamp(26px, 4.5vw, 38px); font-weight: 700; letter-spacing: 0.18em; margin: 0; }
         .meta { margin: 8px 0 0; color: var(--text-dim); font-size: 13px; display: flex; align-items: center; gap: 8px; }
         .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #5fbf7f; }
         .sync-dot.busy { background: var(--accent); animation: pulse 1s infinite; }
@@ -46,19 +49,25 @@
             font-family: var(--font); font-size: 14px; font-weight: 500;
             padding: 10px 18px; border-radius: 6px; cursor: pointer; text-decoration: none;
             display: inline-flex; align-items: center; gap: 8px;
-            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
         }
         .btn-primary { background: var(--accent); color: #1a1408; border: 1px solid var(--accent); }
         .btn-primary:hover { background: var(--accent-hover); }
         .btn-primary:disabled { opacity: 0.6; cursor: wait; }
         .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
         .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-        .btn:focus-visible, .icon-btn:focus-visible, .like-btn:focus-visible, .img-container:focus-visible {
+        .btn:focus-visible, .icon-btn:focus-visible, .like-btn:focus-visible, .img-container:focus-visible, .link-btn:focus-visible {
             outline: 2px solid var(--accent); outline-offset: 3px;
         }
 
+        /* 再読み込みボタン（一番目立たせる） */
+        .btn-reload { font-weight: 700; padding: 10px 22px; box-shadow: 0 0 0 0 rgba(216, 179, 106, 0.5); }
+        .btn-reload .icon { display: inline-block; font-size: 16px; line-height: 1; }
+        .btn-reload.spinning .icon { animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* ===== ライブラリ ===== */
-        main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+        main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 40px; }
         .dashboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
 
         .card {
@@ -68,6 +77,7 @@
         }
         .card:hover { border-color: #3c3c46; }
         .card.sortable-ghost { opacity: 0.3; }
+        body:not(.is-admin) .card { padding-top: 14px; }
 
         .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .drag-handle { cursor: grab; color: var(--text-dim); font-size: 18px; line-height: 1; padding: 4px; user-select: none; }
@@ -102,6 +112,14 @@
 
         #status { text-align: center; color: var(--text-dim); margin-top: 40px; white-space: pre-line; line-height: 1.8; }
 
+        /* ===== フッター（管理者ログイン） ===== */
+        footer { max-width: 1080px; margin: 0 auto; padding: 0 24px 40px; text-align: right; }
+        .link-btn {
+            background: none; border: none; color: #55555f; font-family: var(--font);
+            font-size: 12px; cursor: pointer; padding: 4px 6px;
+        }
+        .link-btn:hover { color: var(--text-dim); }
+
         /* ===== モーダル ===== */
         dialog {
             width: min(520px, calc(100% - 32px)); padding: 0;
@@ -109,6 +127,7 @@
             background: var(--surface); color: var(--text);
             box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
         }
+        dialog.small { width: min(380px, calc(100% - 32px)); }
         dialog::backdrop { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(3px); }
         .dialog-inner { padding: 26px 26px 22px; }
         dialog h2 { font-size: 20px; margin: 0 0 18px; }
@@ -125,6 +144,7 @@
         .preview img { width: 52px; height: 52px; object-fit: cover; border-radius: 4px; background: var(--bg); }
         .preview span { font-size: 12px; color: var(--text-dim); }
         .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+        .form-error { color: var(--heart); font-size: 13px; margin: -6px 0 12px; min-height: 1em; }
 
         #toast {
             position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px);
@@ -147,13 +167,13 @@
 
     <header>
         <div>
-            <h1>音楽ライブラリ</h1>
+            <h1>MUSIC LIBRARY</h1>
             <p class="meta"><span class="sync-dot" id="syncDot"></span><span id="syncText">読み込み中...</span></p>
         </div>
         <div class="toolbar">
-            <a class="btn btn-ghost" id="sheetLink" target="_blank" rel="noopener">スプレッドシートで編集</a>
-            <button class="btn btn-ghost" id="reloadBtn" type="button">再読み込み</button>
-            <button class="btn btn-primary" id="addBtn" type="button">＋ 曲を追加</button>
+            <button class="btn btn-primary btn-reload" id="reloadBtn" type="button"><span class="icon">↻</span>再読み込み</button>
+            <a class="btn btn-ghost admin-only" id="sheetLink" target="_blank" rel="noopener">スプレッドシートで編集</a>
+            <button class="btn btn-ghost admin-only" id="addBtn" type="button">＋ 曲を追加</button>
         </div>
     </header>
 
@@ -162,7 +182,11 @@
         <div class="dashboard" id="dashboard"></div>
     </main>
 
-    <!-- 追加・編集で共用するモーダル -->
+    <footer>
+        <button class="link-btn" id="adminToggle" type="button">管理者ログイン</button>
+    </footer>
+
+    <!-- 追加・編集モーダル（管理者のみ） -->
     <dialog id="songDialog">
         <form id="songForm" class="dialog-inner">
             <h2 id="dialogTitle">曲を追加</h2>
@@ -187,6 +211,20 @@
         </form>
     </dialog>
 
+    <!-- 管理者ログイン -->
+    <dialog id="loginDialog" class="small">
+        <form id="loginForm" class="dialog-inner">
+            <h2>管理者ログイン</h2>
+            <label for="f-key">管理者キー</label>
+            <input type="password" id="f-key" autocomplete="current-password" required>
+            <p class="form-error" id="loginError"></p>
+            <div class="dialog-actions">
+                <button type="button" class="btn btn-ghost" id="loginCancel">キャンセル</button>
+                <button type="submit" class="btn btn-primary" id="loginBtn">ログイン</button>
+            </div>
+        </form>
+    </dialog>
+
     <div id="toast" role="status" aria-live="polite"></div>
 
     <script>
@@ -194,14 +232,17 @@
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxEVvx5vfY_ZY6SWkPj6znhH2MnRwGbB5K_tNWrlz3Uq5NSuAuTOGm9VOBAiYSmR2EBiw/exec';
         // ★ 楽曲データのスプレッドシートのURLに置き換えてください
         const SHEET_URL = 'https://docs.google.com/spreadsheets/d/XXXXXXXXXXXXXXXX/edit';
-        // スプレッドシートを直接編集した内容を拾うための自動同期間隔（ミリ秒）
+        // スプレッドシートの直接編集を拾うための自動同期間隔（ミリ秒）
         const POLL_INTERVAL = 30000;
+        const KEY_STORAGE = 'musicLibraryAdminKey';
 
         const dashboard = document.getElementById('dashboard');
         const statusEl = document.getElementById('status');
         const syncDot = document.getElementById('syncDot');
         const syncText = document.getElementById('syncText');
+        const reloadBtn = document.getElementById('reloadBtn');
         const dialog = document.getElementById('songDialog');
+        const loginDialog = document.getElementById('loginDialog');
         const form = document.getElementById('songForm');
         const fields = {
             title: document.getElementById('f-title'),
@@ -212,14 +253,14 @@
         const preview = document.getElementById('f-preview');
 
         let songs = [];
-        let editingId = null;     // null = 新規追加
+        let editingId = null;
         let isDragging = false;
         let loading = false;
+        let adminKey = null;
 
         document.getElementById('sheetLink').href = SHEET_URL;
 
         // ===== 共通 =====
-        // no-cors でも await すると GAS の処理完了まで待てる
         function postToGas(payload) {
             return fetch(GAS_URL, {
                 method: 'POST',
@@ -242,14 +283,71 @@
         function setSync(state, text) {
             syncDot.className = 'sync-dot' + (state ? ' ' + state : '');
             syncText.textContent = text;
+            reloadBtn.classList.toggle('spinning', state === 'busy');
         }
 
-        // 変更後は必ずこれを呼ぶ（= F5 と同じくスプレッドシートから読み直す）
         let syncTimer;
         function syncSoon(delay = 300) {
             clearTimeout(syncTimer);
             syncTimer = setTimeout(loadSongs, delay);
         }
+
+        // ===== 管理者 =====
+        function safeGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+        function safeSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+        function safeRemove(k) { try { localStorage.removeItem(k); } catch {} }
+
+        async function verifyKey(key) {
+            const res = await fetch(`${GAS_URL}?action=verify&key=${encodeURIComponent(key)}&t=${Date.now()}`, { cache: 'no-store' });
+            const data = await res.json();
+            return data && data.ok === true;
+        }
+
+        function setAdmin(key) {
+            adminKey = key;
+            const on = !!key;
+            document.body.classList.toggle('is-admin', on);
+            document.getElementById('adminToggle').textContent = on ? 'ログアウト' : '管理者ログイン';
+            if (sortable) sortable.option('disabled', !on);
+        }
+
+        document.getElementById('adminToggle').addEventListener('click', () => {
+            if (adminKey) {
+                safeRemove(KEY_STORAGE);
+                setAdmin(null);
+                toast('ログアウトしました');
+            } else {
+                document.getElementById('f-key').value = '';
+                document.getElementById('loginError').textContent = '';
+                loginDialog.showModal();
+            }
+        });
+        document.getElementById('loginCancel').addEventListener('click', () => loginDialog.close());
+        loginDialog.addEventListener('click', e => { if (e.target === loginDialog) loginDialog.close(); });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const key = document.getElementById('f-key').value;
+            const btn = document.getElementById('loginBtn');
+            const errEl = document.getElementById('loginError');
+            btn.disabled = true;
+            errEl.textContent = '';
+            try {
+                if (await verifyKey(key)) {
+                    safeSet(KEY_STORAGE, key);
+                    setAdmin(key);
+                    loginDialog.close();
+                    toast('管理者としてログインしました');
+                } else {
+                    errEl.textContent = 'キーが正しくありません';
+                }
+            } catch (err) {
+                console.error(err);
+                errEl.textContent = '確認できませんでした。通信状況を確認してください';
+            } finally {
+                btn.disabled = false;
+            }
+        });
 
         // ===== カード =====
         function el(tag, className, text) {
@@ -263,7 +361,8 @@
             const card = el('article', 'card');
             card.dataset.id = song.id;
 
-            const top = el('div', 'card-top');
+            // 並び替え・編集は管理者のみ
+            const top = el('div', 'card-top admin-only');
             const handle = el('span', 'drag-handle', '⠿');
             handle.title = 'ドラッグして並び替え';
             const editBtn = el('button', 'icon-btn', '編集');
@@ -306,14 +405,13 @@
                 statusEl.style.display = 'none';
             } else {
                 statusEl.style.display = 'block';
-                statusEl.textContent = 'まだ曲がありません。「＋ 曲を追加」から登録してください。';
+                statusEl.textContent = 'まだ曲がありません。';
             }
         }
 
         // ===== スプレッドシートから読み込み =====
         async function loadSongs() {
-            // モーダル編集中・ドラッグ中は画面を書き換えない（あとで同期）
-            if (loading || isDragging || dialog.open) return;
+            if (loading || isDragging || dialog.open || loginDialog.open) return;
             loading = true;
             setSync('busy', '同期中...');
             try {
@@ -325,7 +423,6 @@
                 catch { console.error('GASの応答:', text); throw new Error('JSONではない応答'); }
                 if (!Array.isArray(data)) throw new Error('配列ではない応答');
 
-                // 内容が変わったときだけ描き直す（ちらつき防止）
                 if (JSON.stringify(data) !== JSON.stringify(songs) || !dashboard.children.length) {
                     songs = data;
                     render();
@@ -337,29 +434,30 @@
                 setSync('error', '同期できませんでした');
                 if (!songs.length) {
                     statusEl.style.display = 'block';
-                    statusEl.textContent = 'データを読み込めませんでした。\nGASのURLとデプロイ設定（アクセス: 全員）を確認してください。';
+                    statusEl.textContent = 'データを読み込めませんでした。\n少し時間をおいて再読み込みしてください。';
                 }
             } finally {
                 loading = false;
             }
         }
 
-        // ===== 並び替え =====
-        new Sortable(dashboard, {
+        // ===== 並び替え（管理者のみ） =====
+        const sortable = new Sortable(dashboard, {
             handle: '.drag-handle',
             animation: 150,
+            disabled: true,
             onStart() { isDragging = true; },
             async onEnd() {
                 isDragging = false;
                 const orderedIds = Array.from(dashboard.children).map(c => c.dataset.id);
                 setSync('busy', '並び順を保存中...');
-                try { await postToGas({ action: 'reorder', orderedIds }); }
+                try { await postToGas({ action: 'reorder', key: adminKey, orderedIds }); }
                 catch (e) { console.error(e); toast('並び順を保存できませんでした'); }
                 syncSoon();
             }
         });
 
-        // ===== 再生・いいね =====
+        // ===== 再生・いいね（誰でも可） =====
         function playSong(id) {
             const song = songs.find(s => String(s.id) === String(id));
             if (!song) return;
@@ -377,11 +475,12 @@
             setTimeout(() => btn.style.transform = 'scale(1)', 200);
             try { await postToGas({ action: 'like', id }); }
             catch (e) { console.error(e); }
-            syncSoon(600);  // 連打してもまとめて1回だけ同期
+            syncSoon(600);
         }
 
-        // ===== 追加・編集モーダル =====
+        // ===== 追加・編集モーダル（管理者のみ） =====
         function openDialog(id = null) {
+            if (!adminKey) return;
             editingId = id;
             const song = id !== null ? songs.find(s => String(s.id) === String(id)) : null;
             document.getElementById('dialogTitle').textContent = song ? '曲を編集' : '曲を追加';
@@ -401,9 +500,8 @@
 
         document.getElementById('addBtn').addEventListener('click', () => openDialog());
         document.getElementById('cancelBtn').addEventListener('click', () => dialog.close());
-        document.getElementById('reloadBtn').addEventListener('click', () => loadSongs());
+        reloadBtn.addEventListener('click', () => loadSongs());
         dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
-        // モーダルを閉じたら最新状態に同期
         dialog.addEventListener('close', () => syncSoon(0));
 
         form.addEventListener('submit', async (e) => {
@@ -416,13 +514,13 @@
             saveBtn.textContent = '保存中...';
             try {
                 if (editingId !== null) {
-                    await postToGas({ action: 'update', id: editingId, ...values });
+                    await postToGas({ action: 'update', key: adminKey, id: editingId, ...values });
                     toast('変更を保存しました');
                 } else {
-                    await postToGas({ action: 'add', ...values });
+                    await postToGas({ action: 'add', key: adminKey, ...values });
                     toast('曲を追加しました');
                 }
-                dialog.close();   // close イベントで自動的に再読み込み
+                dialog.close();
             } catch (err) {
                 console.error(err);
                 toast('保存できませんでした。通信状況を確認してください');
@@ -432,17 +530,26 @@
             }
         });
 
-        // ===== スプレッドシート直接編集の反映 =====
-        // タブに戻ってきたとき（スプレッドシートを編集して戻った時など）に同期
+        // ===== 自動同期 =====
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') loadSongs();
         });
-        // 開きっぱなしでも定期的に同期
         setInterval(() => {
             if (document.visibilityState === 'visible') loadSongs();
         }, POLL_INTERVAL);
 
-        loadSongs();
+        // ===== 起動 =====
+        (async () => {
+            loadSongs();
+            // 保存済みのキーがあれば、まだ有効か確認してから管理者モードにする
+            const saved = safeGet(KEY_STORAGE);
+            if (saved) {
+                try {
+                    if (await verifyKey(saved)) setAdmin(saved);
+                    else safeRemove(KEY_STORAGE);
+                } catch (e) { console.error(e); }
+            }
+        })();
     </script>
 </body>
 </html>
